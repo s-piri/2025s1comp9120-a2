@@ -31,3 +31,15 @@ Complete the following:
 
 - [x] Setup git repo
 - [ ] Delegate works
+
+## Rubrics
+
+| Criterion                   | No/Part Marks (0–1.5 pts unless stated)                                                   | Full Marks (2–2.5 pts unless stated)                                        |
+| --------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Login                       | Can log in with user `jdoe` and validate credentials                                      | All valid users can log in; invalid users are rejected                      |
+| View CarSales Summary       | Displays summary (e.g., Figure 3)                                                         | Correctly displays full summary in required order                           |
+| Find CarSales               | Lists results for keyword “ro” (e.g., Figure 5)                                           | Lists correct results for all keywords in the correct order                 |
+| Add CarSale                 | Can add a valid car sale record                                                           | Adds all valid records; invalid details are rejected                        |
+| Update CarSale              | Can update the **status** of a car sale                                                   | Can update **all details**, ensuring updated values are valid               |
+| Stored Procedure / Function | A couple of stored procedures/functions are included in SQL file                          | Procedures are also correctly called in **two of five specified functions** |
+| Group Record Keeping (1 pt) | One or more issues with member contribution or missing Canvas meeting records (**0 pts**) | No issues; all members contribute and maintain Canvas diary (**1 pt**)      |
