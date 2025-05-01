@@ -4,17 +4,19 @@
 
 Complete the following:
 
-1. checkLogin (for login)
-2. getCarSalesSummary (for viewing car sales summary)
-3. findCarSales (for finding car sales)
-4. addCarSale (for adding a car sale)
-5. updateCarSale (for updating a car sale)
+1. checkLogin (for login) (Harry)
+2. getCarSalesSummary (for viewing car sales summary) (Harry)
+3. findCarSales (for finding car sales) (Pup)
+4. addCarSale (for adding a car sale) (Van)
+5. updateCarSale (for updating a car sale) (Van)
 
 ## Constraints
 
 ### Login Page
 
 1. Username should be **case insensitive**
+2. No additional Python modules or libraries should be imported.
+3. Note that, for each function, the corresponding action and outcome should be implemented by issuing SQL queries
 
 ### Summary Page
 
@@ -27,10 +29,25 @@ Complete the following:
    - Last Purchased At: The date when the last car of that make and model was sold. It needs to be display in the Australian date convention (Date-Month-Year).
      Figure
 
+### Search functionality
+
+1. The search is case insensitive.
+2. The search results must exclude any sold car where sale dates are older than 3 years (from today’s date).
+3. Sale date should be displayed in the Australian date convention (Date-Month-Year).
+4. Available cars are listed at the top, followed by sold cars ordered by sale date in ascending order.
+5. Sold cars are then sorted by make name and model name in ascending order.
+
 ## To-Do
 
 - [x] Setup git repo
-- [ ] Delegate works
+- [x] Delegate works
+- [ ] Login Page
+  - [ ] Test cases (case-sensitivity)
+- [ ] Summary Page
+  - [ ] Search Functionality
+  - [ ] Test cases (search result order)
+- [ ] Add Carsale page
+- [ ] Update Carsale page
 
 ## Rubrics
 
