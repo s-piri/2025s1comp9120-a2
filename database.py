@@ -60,6 +60,7 @@ def getCarSalesSummary():
     :return: A list of car sales matching the search string.
 """
 def findCarSales(searchString):
+    print("github test")
     return
 
 """
