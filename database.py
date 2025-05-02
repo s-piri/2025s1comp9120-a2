@@ -61,6 +61,7 @@ def getCarSalesSummary():
 """
 def findCarSales(searchString):
     print("github test")
+    print("Github test 2")
     return
 
 """
