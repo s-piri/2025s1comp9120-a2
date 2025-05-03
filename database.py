@@ -60,9 +60,19 @@ def getCarSalesSummary():
     :return: A list of car sales matching the search string.
 """
 def findCarSales(searchString):
-    print("github test")
-    print("Github test 2")
-    return
+    conn = openConnection()
+    cursor = conn.cursor()
+    searchString = searchString.lower()
+    cursor.execute("""
+        SELECT C.CarSaleID, M.MakeName as Make, M.ModelCode as Model, M.BuiltYear as Year, M.Odometer, M.Price, M.IsSold, M.SaleDate, M.BuyerID, M.SalespersonID,   
+        FROM Make M
+        JOIN CarSales C ON M.MakeCode = C.MakeCode 
+        WHERE M.MakeName=%(searchString)s 
+    """, {'searchString': searchString} )
+
+    res = cursor.fetchall() 
+
+    return res
 
 """
     Adds a new car sale to the database.
