@@ -34,9 +34,8 @@ def openConnection():
 Validate salesperson based on username and password
 '''
 def checkLogin(login, password):
-
     return ['jdoe', 'John', 'Doe']
-
+    
 
 """
     Retrieves the summary of car sales.
@@ -48,7 +47,51 @@ def checkLogin(login, password):
     :return: A list of car sale summaries.
 """
 def getCarSalesSummary():
-    return
+    conn = openConnection()
+    if not conn:
+        return []
+
+    cur = conn.cursor()
+    query = """
+        SELECT
+            mk.MakeName AS make,
+            md.ModelName AS model,
+            COUNT(CASE WHEN cs.IsSold = FALSE THEN 1 END) AS available_units,
+            COUNT(CASE WHEN cs.IsSold = TRUE THEN 1 END) AS sold_units,
+            COALESCE(SUM(CASE WHEN cs.IsSold = TRUE THEN cs.Price END), 0)::NUMERIC(10,2) AS total_sales,
+            TO_CHAR(MAX(CASE WHEN cs.IsSold = TRUE THEN cs.SaleDate END), 'DD-MM-YYYY') AS last_purchased_at
+        FROM
+            CarSales cs
+            JOIN Make mk ON cs.MakeCode = mk.MakeCode
+            JOIN Model md ON cs.ModelCode = md.ModelCode
+        GROUP BY
+            mk.MakeName, md.ModelName
+        ORDER BY
+            mk.MakeName ASC, md.ModelName ASC;
+    """
+    cur.execute(query)
+    results = cur.fetchall()
+    summary = []
+    for row in results:
+        total_sales = row[4]
+        if total_sales is None or float(total_sales) == 0.0:
+            total_sales = 0
+        else:
+            total_sales = int(total_sales) if float(total_sales).is_integer() else float(total_sales)
+
+        last_purchased_at = row[5] if row[5] is not None else ""
+
+        summary.append({
+            "make": row[0],
+            "model": row[1],
+            "availableUnits": row[2],
+            "soldUnits": row[3],
+            "soldTotalPrices": total_sales,
+            "lastPurchaseAt": last_purchased_at
+        })
+    cur.close()
+    conn.close()
+    return summary
 
 """
     Finds car sales based on the provided search string.
