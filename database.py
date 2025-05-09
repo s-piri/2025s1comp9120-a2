@@ -58,7 +58,10 @@ def getCarSalesSummary():
             md.ModelName AS model,
             COUNT(CASE WHEN cs.IsSold = FALSE THEN 1 END) AS available_units,
             COUNT(CASE WHEN cs.IsSold = TRUE THEN 1 END) AS sold_units,
-            COALESCE(SUM(CASE WHEN cs.IsSold = TRUE THEN cs.Price END), 0)::NUMERIC(10,2) AS total_sales,
+            CASE 
+                WHEN COALESCE(SUM(CASE WHEN cs.IsSold = TRUE THEN cs.Price END), 0)::NUMERIC(10,2) = 0 THEN 0
+                ELSE COALESCE(SUM(CASE WHEN cs.IsSold = TRUE THEN cs.Price END), 0)::NUMERIC(10,2)
+            END AS total_sales,
             COALESCE(MAX(CASE WHEN cs.IsSold = TRUE THEN TO_CHAR(cs.SaleDate, 'DD-MM-YYYY') END), '') AS last_purchased_at
         FROM
             CarSales cs
