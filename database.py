@@ -75,8 +75,8 @@ def findCarSales(searchString):
             Sales.Price AS price,
             Sales.IsSold AS "isSold",
             Sales.SaleDate AS sale_date,
-            FORMAT('%s %s', C.FirstName, C.LastName) AS buyer,
-            FORMAT('%s %s', S.FirstName, S.LastName) AS salesperson
+            C.FirstName || ' ' || C.LastName AS buyer,
+            S.FirstName || ' ' || S.LastName AS salesperson
         FROM CarSales Sales
         JOIN Make ON Make.MakeCode = Sales.MakeCode 
         JOIN Model ON Model.ModelCode = Sales.ModelCode
@@ -84,9 +84,10 @@ def findCarSales(searchString):
         JOIN Salesperson S ON S.UserName = Sales.SalespersonID
         WHERE LOWER(Make.MakeName) LIKE %(searchString)s 
             OR LOWER(Model.ModelName) LIKE %(searchString)s 
-            OR LOWER(C.FirstName) = %(searchString)s 
-            OR LOWER(S.FirstName) = %(searchString)s 
-            OR LOWER(S.LastName) = %(searchString)s;
+            OR LOWER(C.FirstName) LIKE %(searchString)s 
+            OR LOWER(C.LastName) LIKE %(searchString)s
+            OR LOWER(S.FirstName) LIKE %(searchString)s 
+            OR LOWER(S.LastName) LIKE %(searchString)s;
     """, {'searchString': searchString} )
     res = cursor.fetchall() 
     attributes = [desc[0] for desc in cursor.description]  
