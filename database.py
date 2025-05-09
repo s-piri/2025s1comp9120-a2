@@ -45,8 +45,6 @@ def checkLogin(login, password):
             WHERE LOWER(username) = LOWER(%s) AND password = %s
         """, (login, password))
         result = cur.fetchone()
-        cur.close()
-        conn.close
         if result:
             return list(result)
         else:
@@ -54,7 +52,9 @@ def checkLogin(login, password):
     except Exception as e:
         print("Error during login:", e)
         return None
-
+    finally:
+        cur.close()
+        conn.close()
 
 """
     Retrieves the summary of car sales.
