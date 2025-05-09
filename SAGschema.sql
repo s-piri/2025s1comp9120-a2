@@ -108,3 +108,31 @@ INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, B
 ('MB', 'eclass', 2019, 99220, 105000.00, FALSE, NULL, NULL, NULL),
 ('VW', 'golf', 2023, 53849, 43000.00, FALSE, NULL, NULL, NULL),
 ('MB', 'cclass', 2022, 89200, 62000.00, FALSE, NULL, NULL, NULL);
+
+CREATE OR REPLACE FUNCTION check_positive_odometer () RETURNS TRIGGER AS $$
+    BEGIN
+        IF EXISTS (SELECT * FROM CarSales c WHERE c.odometer <= 0) THEN
+            RAISE EXCEPTION 'Odometer value must be positive';
+        END IF;
+        RETURN NEW;
+    END;   
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION check_positive_prive () RETURNS TRIGGER AS $$
+    BEGIN
+        IF EXISTS (SELECT * FROM CarSales c WHERE c.price <= 0) THEN
+            RAISE EXCEPTION 'Price value must be positive';
+        END IF;
+        RETURN NEW;
+    END;   
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_odometer_must_be_positive
+AFTER INSERT ON CarSales
+FOR EACH ROW
+    EXECUTE FUNCTION check_positive_odometer();
+
+CREATE TRIGGER trg_price_must_be_positive
+AFTER INSERT ON CarSales
+FOR EACH ROW
+    EXECUTE FUNCTION check_positive_price();
