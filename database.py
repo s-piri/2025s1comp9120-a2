@@ -75,8 +75,8 @@ def findCarSales(searchString):
             Sales.Price AS price,
             Sales.IsSold AS "isSold",
             Sales.SaleDate AS sale_date,
-            C.FirstName || ' ' || C.LastName AS buyer,
-            S.FirstName || ' ' || S.LastName AS salesperson
+            FORMAT('%s %s', C.FirstName, C.LastName) AS buyer,
+            FORMAT('%s %s', S.FirstName, S.LastName) AS salesperson
         FROM CarSales Sales
         JOIN Make ON Make.MakeCode = Sales.MakeCode 
         JOIN Model ON Model.ModelCode = Sales.ModelCode
