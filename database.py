@@ -75,7 +75,30 @@ def findCarSales(searchString):
     :return: A boolean indicating if the operation was successful or not.
 """
 def addCarSale(make, model, builtYear, odometer, price):
-    return
+    #TODO Check constraints; Right now odometer, price can be negative e.g. -100000 by making triggers/stored function
+    try:
+        conn = openConnection()
+        if not conn:
+            return False
+        query = """
+        INSERT INTO 
+            CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate)
+        VALUES 
+            (%s, %s, %s, %s, %s, False, NULL, NULL, NULL);
+        """
+        curs = conn.cursor() 
+        curs.execute(query, (make, model, builtYear, odometer, price))
+        conn.commit()
+
+        return True
+    
+    except Exception as e:
+        print(f"Exception: {e}")
+        return False
+    
+    finally:
+        curs.close()
+        conn.close()
 
 """
     Updates an existing car sale in the database.
