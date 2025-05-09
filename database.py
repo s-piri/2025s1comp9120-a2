@@ -74,12 +74,7 @@ def getCarSalesSummary():
     summary = []
     for row in results:
         total_sales = row[4]
-        if total_sales is None or float(total_sales) == 0.0:
-            total_sales = 0
-        else:
-            total_sales = int(total_sales) if float(total_sales).is_integer() else float(total_sales)
-
-        last_purchased_at = row[5] if row[5] is not None else ""
+        last_purchased_at = row[5]
 
         summary.append({
             "make": row[0],
