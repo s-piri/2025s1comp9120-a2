@@ -34,9 +34,27 @@ def openConnection():
 Validate salesperson based on username and password
 '''
 def checkLogin(login, password):
-
-    return ['jdoe', 'John', 'Doe']
-
+    conn = openConnection()
+    if not conn:
+        return None
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT username, firstname, lastname
+            FROM Salesperson
+            WHERE LOWER(username) = LOWER(%s) AND password = %s
+        """, (login, password))
+        result = cur.fetchone()
+        if result:
+            return list(result)
+        else:
+            return None
+    except Exception as e:
+        print("Error during login:", e)
+        return None
+    finally:
+        cur.close()
+        conn.close()
 
 """
     Retrieves the summary of car sales.
@@ -48,7 +66,46 @@ def checkLogin(login, password):
     :return: A list of car sale summaries.
 """
 def getCarSalesSummary():
-    return
+    conn = openConnection()
+    if not conn:
+        return []
+
+    cur = conn.cursor()
+    query = """
+        SELECT
+            mk.MakeName AS make,
+            md.ModelName AS model,
+            COUNT(CASE WHEN cs.IsSold = FALSE THEN 1 END) AS available_units,
+            COUNT(CASE WHEN cs.IsSold = TRUE THEN 1 END) AS sold_units,
+            COALESCE(SUM(CASE WHEN cs.IsSold = TRUE THEN cs.Price END), 0) AS total_sales,
+            COALESCE(MAX(CASE WHEN cs.IsSold = TRUE THEN TO_CHAR(cs.SaleDate, 'DD-MM-YYYY') END), '') AS last_purchased_at
+        FROM
+            CarSales cs
+            JOIN Make mk ON cs.MakeCode = mk.MakeCode
+            JOIN Model md ON cs.ModelCode = md.ModelCode
+        GROUP BY
+            mk.MakeName, md.ModelName
+        ORDER BY
+            mk.MakeName ASC, md.ModelName ASC;
+    """
+    cur.execute(query)
+    results = cur.fetchall()
+    summary = []
+    for row in results:
+        total_sales = row[4]
+        last_purchased_at = row[5]
+        
+        summary.append({
+            "make": row[0],
+            "model": row[1],
+            "availableUnits": row[2],
+            "soldUnits": row[3],
+            "soldTotalPrices": total_sales,
+            "lastPurchaseAt": last_purchased_at
+        })
+    cur.close()
+    conn.close()
+    return summary
 
 """
     Finds car sales based on the provided search string.
@@ -65,32 +122,45 @@ def findCarSales(searchString):
         return None
 
     cursor = conn.cursor()
-    searchString = f"%{searchString.lower()}%"
-    cursor.execute("""
-        SELECT Sales.CarSaleID AS carsale_id,
-            Make.MakeName AS make,
-            Model.ModelName AS model,
-            Sales.BuiltYear AS "builtYear",
-            Sales.Odometer AS odometer,
-            Sales.Price AS price,
-            Sales.IsSold AS "isSold",
-            Sales.SaleDate AS sale_date,
-            C.FirstName || ' ' || C.LastName AS buyer,
-            S.FirstName || ' ' || S.LastName AS salesperson
+    searchString = f"%{searchString}%"
+    query = """
+        SELECT Sales.CarSaleID,
+            Make.MakeName,
+            Model.ModelName,
+            Sales.BuiltYear,
+            Sales.Odometer,
+            Sales.Price,
+            Sales.IsSold,
+            COALESCE(TO_CHAR(Sales.SaleDate, 'DD-MM-YYYY'), '') AS SaleDate,
+            COALESCE(C.FirstName || ' ' || C.LastName, '') AS Buyer,
+            COALESCE(S.FirstName || ' ' || S.LastName, '') AS Salesperson
         FROM CarSales Sales
-        JOIN Make ON Make.MakeCode = Sales.MakeCode 
-        JOIN Model ON Model.ModelCode = Sales.ModelCode
-        JOIN Customer C ON C.CustomerID = Sales.BuyerID
-        JOIN Salesperson S ON S.UserName = Sales.SalespersonID
-        WHERE LOWER(Make.MakeName) LIKE %(searchString)s 
-            OR LOWER(Model.ModelName) LIKE %(searchString)s 
-            OR LOWER(C.FirstName) LIKE %(searchString)s 
-            OR LOWER(C.LastName) LIKE %(searchString)s
-            OR LOWER(S.FirstName) LIKE %(searchString)s 
-            OR LOWER(S.LastName) LIKE %(searchString)s;
-    """, {'searchString': searchString} )
+            JOIN Make ON Make.MakeCode = Sales.MakeCode 
+            JOIN Model ON Model.ModelCode = Sales.ModelCode
+            LEFT JOIN Customer C ON C.CustomerID = Sales.BuyerID
+            LEFT JOIN Salesperson S ON S.UserName = Sales.SalespersonID
+        WHERE (
+            LOWER(Make.MakeName) LIKE LOWER(%s)
+            OR LOWER(Model.ModelName) LIKE LOWER(%s)
+            OR LOWER(C.FirstName) LIKE LOWER(%s) 
+            OR LOWER(C.LastName) LIKE LOWER(%s)
+            OR LOWER(S.FirstName) LIKE LOWER(%s)
+            OR LOWER(S.LastName) LIKE LOWER(%s)
+            OR LOWER(C.FirstName || ' ' || C.LastName) LIKE LOWER(%s)
+            OR LOWER(S.FirstName || ' ' || S.LastName) LIKE LOWER(%s)
+        )
+        AND (
+            Sales.IsSold = FALSE
+            OR (Sales.IsSold = TRUE AND Sales.SaleDate >= CURRENT_DATE - INTERVAL '3 years')
+        )
+        ORDER BY Sales.IsSold ASC, 
+                Sales.SaleDate ASC NULLS FIRST, 
+                Make.MakeName ASC, 
+                Model.ModelName ASC;
+    """
+    cursor.execute(query, [searchString] * 8)
     res = cursor.fetchall() 
-    attributes = [desc[0] for desc in cursor.description]  
+    attributes = ['carsale_id', 'make', 'model', 'builtYear', 'odometer', 'price', 'isSold', 'sale_date', 'buyer', 'salesperson']  
     res = [dict(zip(attributes, row)) for row in res]
     cursor.close()
     conn.close()
@@ -108,7 +178,30 @@ def findCarSales(searchString):
     :return: A boolean indicating if the operation was successful or not.
 """
 def addCarSale(make, model, builtYear, odometer, price):
-    return
+    #TODO Check constraints; Right now odometer, price can be negative e.g. -100000 by making triggers/stored function
+    try:
+        conn = openConnection()
+        if not conn:
+            return False
+        query = """
+        INSERT INTO 
+            CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate)
+        VALUES 
+            (%s, %s, %s, %s, %s, False, NULL, NULL, NULL);
+        """
+        curs = conn.cursor() 
+        curs.execute(query, (make, model, builtYear, odometer, price))
+        conn.commit()
+
+        return True
+    
+    except Exception as e:
+        print(f"Exception: {e}")
+        return False
+    
+    finally:
+        curs.close()
+        conn.close()
 
 """
     Updates an existing car sale in the database.
