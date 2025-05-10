@@ -34,9 +34,27 @@ def openConnection():
 Validate salesperson based on username and password
 '''
 def checkLogin(login, password):
-
-    return ['jdoe', 'John', 'Doe']
-
+    conn = openConnection()
+    if not conn:
+        return None
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT username, firstname, lastname
+            FROM Salesperson
+            WHERE LOWER(username) = LOWER(%s) AND password = %s
+        """, (login, password))
+        result = cur.fetchone()
+        if result:
+            return list(result)
+        else:
+            return None
+    except Exception as e:
+        print("Error during login:", e)
+        return None
+    finally:
+        cur.close()
+        conn.close()
 
 """
     Retrieves the summary of car sales.
