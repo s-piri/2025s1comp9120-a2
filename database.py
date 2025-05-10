@@ -89,6 +89,8 @@ def findCarSales(searchString):
             OR LOWER(C.LastName) LIKE LOWER(%s)
             OR LOWER(S.FirstName) LIKE LOWER(%s)
             OR LOWER(S.LastName) LIKE LOWER(%s)
+            OR LOWER(C.FirstName || ' ' || C.LastName) LIKE LOWER(%s)
+            OR LOWER(S.FirstName || ' ' || S.LastName) LIKE LOWER(%s)
         )
         AND (
             Sales.IsSold = FALSE
@@ -99,7 +101,7 @@ def findCarSales(searchString):
                 Make.MakeName ASC, 
                 Model.ModelName ASC;
     """
-    cursor.execute(query, [searchString] * 6)
+    cursor.execute(query, [searchString] * 8)
     res = cursor.fetchall() 
     attributes = ['carsale_id', 'make', 'model', 'builtYear', 'odometer', 'price', 'isSold', 'sale_date', 'buyer', 'salesperson']  
     res = [dict(zip(attributes, row)) for row in res]
