@@ -65,32 +65,43 @@ def findCarSales(searchString):
         return None
 
     cursor = conn.cursor()
-    searchString = f"%{searchString.lower()}%"
-    cursor.execute("""
-        SELECT Sales.CarSaleID AS carsale_id,
-            Make.MakeName AS make,
-            Model.ModelName AS model,
-            Sales.BuiltYear AS "builtYear",
-            Sales.Odometer AS odometer,
-            Sales.Price AS price,
-            Sales.IsSold AS "isSold",
-            Sales.SaleDate AS sale_date,
-            C.FirstName || ' ' || C.LastName AS buyer,
-            S.FirstName || ' ' || S.LastName AS salesperson
+    searchString = f"%{searchString}%"
+    query = """
+        SELECT Sales.CarSaleID,
+            Make.MakeName,
+            Model.ModelName,
+            Sales.BuiltYear,
+            Sales.Odometer,
+            Sales.Price,
+            Sales.IsSold,
+            COALESCE(TO_CHAR(Sales.SaleDate, 'DD-MM-YYYY'), '') AS SaleDate,
+            COALESCE(C.FirstName || ' ' || C.LastName, '') AS Buyer,
+            COALESCE(S.FirstName || ' ' || S.LastName, '') AS Salesperson
         FROM CarSales Sales
-        JOIN Make ON Make.MakeCode = Sales.MakeCode 
-        JOIN Model ON Model.ModelCode = Sales.ModelCode
-        JOIN Customer C ON C.CustomerID = Sales.BuyerID
-        JOIN Salesperson S ON S.UserName = Sales.SalespersonID
-        WHERE LOWER(Make.MakeName) LIKE %(searchString)s 
-            OR LOWER(Model.ModelName) LIKE %(searchString)s 
-            OR LOWER(C.FirstName) LIKE %(searchString)s 
-            OR LOWER(C.LastName) LIKE %(searchString)s
-            OR LOWER(S.FirstName) LIKE %(searchString)s 
-            OR LOWER(S.LastName) LIKE %(searchString)s;
-    """, {'searchString': searchString} )
+            JOIN Make ON Make.MakeCode = Sales.MakeCode 
+            JOIN Model ON Model.ModelCode = Sales.ModelCode
+            LEFT JOIN Customer C ON C.CustomerID = Sales.BuyerID
+            LEFT JOIN Salesperson S ON S.UserName = Sales.SalespersonID
+        WHERE (
+            LOWER(Make.MakeName) LIKE LOWER(%s)
+            OR LOWER(Model.ModelName) LIKE LOWER(%s)
+            OR LOWER(C.FirstName) LIKE LOWER(%s) 
+            OR LOWER(C.LastName) LIKE LOWER(%s)
+            OR LOWER(S.FirstName) LIKE LOWER(%s)
+            OR LOWER(S.LastName) LIKE LOWER(%s)
+        )
+        AND (
+            Sales.IsSold = FALSE
+            OR (Sales.IsSold = TRUE AND Sales.SaleDate >= CURRENT_DATE - INTERVAL '3 years')
+        )
+        ORDER BY Sales.IsSold ASC, 
+                Sales.SaleDate ASC NULLS FIRST, 
+                Make.MakeName ASC, 
+                Model.ModelName ASC;
+    """
+    cursor.execute(query, [searchString] * 6)
     res = cursor.fetchall() 
-    attributes = [desc[0] for desc in cursor.description]  
+    attributes = ['carsale_id', 'make', 'model', 'builtYear', 'odometer', 'price', 'isSold', 'sale_date', 'buyer', 'salesperson']  
     res = [dict(zip(attributes, row)) for row in res]
     cursor.close()
     conn.close()
