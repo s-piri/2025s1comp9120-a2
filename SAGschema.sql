@@ -108,3 +108,31 @@ INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, B
 ('MB', 'eclass', 2019, 99220, 105000.00, FALSE, NULL, NULL, NULL),
 ('VW', 'golf', 2023, 53849, 43000.00, FALSE, NULL, NULL, NULL),
 ('MB', 'cclass', 2022, 89200, 62000.00, FALSE, NULL, NULL, NULL);
+
+CREATE FUNCTION updateCarSale(IN in_carsaleid SERIAL, IN in_customer VARCHAR, 
+                              IN in_salesperson VARCHAR, IN in_saledate TEXT, OUT result BOOLEAN) AS $$
+    DECLARE
+        l_customer VARCHAR;
+        l_salesperson VARCHAR;
+        format_saledate DATE;
+    BEGIN
+        l_customer := LOWER(in_customer);
+        l_salesperson := LOWER(in_salesperson);
+        BEGIN
+            format_saledate := TO_DATE(in_saledate, 'DD-MM-YYYY');
+        EXCEPTION
+            WHEN OTHERS THEN
+                RAISE EXCEPTION 'Sale date not in Australian Date format (DD-MM-YYYY)';
+        END;
+        IF format_saledate > CURRENT_DATE THEN result := FALSE;
+        ELSIF NOT EXISTS (SELECT * FROM Customer WHERE CustomerID=l_customer) THEN result := FALSE;
+        ELSIF NOT EXISTS (SELECT * FROM Salesperson WHERE SalespersonID=l_salesperson) THEN result := FALSE;
+        ELSIF NOT EXISTS (SELECT * FROM CarSales WHERE CarSaleID=in_carsaleid) THEN result := FALSE;
+        ELSE
+            UPDATE CarSales c 
+            SET c.IsSold=TRUE, c.BuyerID=l_customer, c.SalespersonID=l_salesperson, c.SaleDate=format_saledate
+            WHERE c.CarSaleID=in_carsaleid;
+            result := TRUE;
+        END IF;
+    END; $$
+ LANGUAGE plpgsql;
