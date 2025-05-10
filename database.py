@@ -66,7 +66,46 @@ def checkLogin(login, password):
     :return: A list of car sale summaries.
 """
 def getCarSalesSummary():
-    return
+    conn = openConnection()
+    if not conn:
+        return []
+
+    cur = conn.cursor()
+    query = """
+        SELECT
+            mk.MakeName AS make,
+            md.ModelName AS model,
+            COUNT(CASE WHEN cs.IsSold = FALSE THEN 1 END) AS available_units,
+            COUNT(CASE WHEN cs.IsSold = TRUE THEN 1 END) AS sold_units,
+            COALESCE(SUM(CASE WHEN cs.IsSold = TRUE THEN cs.Price END), 0) AS total_sales,
+            COALESCE(MAX(CASE WHEN cs.IsSold = TRUE THEN TO_CHAR(cs.SaleDate, 'DD-MM-YYYY') END), '') AS last_purchased_at
+        FROM
+            CarSales cs
+            JOIN Make mk ON cs.MakeCode = mk.MakeCode
+            JOIN Model md ON cs.ModelCode = md.ModelCode
+        GROUP BY
+            mk.MakeName, md.ModelName
+        ORDER BY
+            mk.MakeName ASC, md.ModelName ASC;
+    """
+    cur.execute(query)
+    results = cur.fetchall()
+    summary = []
+    for row in results:
+        total_sales = row[4]
+        last_purchased_at = row[5]
+        
+        summary.append({
+            "make": row[0],
+            "model": row[1],
+            "availableUnits": row[2],
+            "soldUnits": row[3],
+            "soldTotalPrices": total_sales,
+            "lastPurchaseAt": last_purchased_at
+        })
+    cur.close()
+    conn.close()
+    return summary
 
 """
     Finds car sales based on the provided search string.
