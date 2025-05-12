@@ -11,19 +11,18 @@ Connect to the database using the connection string
 def openConnection():
     # connection parameters - ENTER YOUR LOGIN AND PASSWORD HERE
 
-    myHost = "127.0.0.1"
-    userid = "pup"
-    passwd = "123456"
+    myHost = ""
+    userid = ""
+    passwd = ""
     
     # Create a connection to the database
     conn = None
     try:
         # Parses the config file and connects using the connect string
-        conn = psycopg2.connect(database="ass2",
+        conn = psycopg2.connect(database=userid,
                                     user=userid,
                                     password=passwd,
-                                    host=myHost,
-                                    port="5432")
+                                    host=myHost)
 
     except psycopg2.Error as sqle:
         print("psycopg2.Error : " + sqle.pgerror)
