@@ -123,45 +123,11 @@ def findCarSales(searchString):
             return None
 
         cursor = conn.cursor()
-        searchString = f"%{searchString}%"
-        query = """
-            SELECT Sales.CarSaleID,
-                Make.MakeName,
-                Model.ModelName,
-                Sales.BuiltYear,
-                Sales.Odometer,
-                Sales.Price,
-                Sales.IsSold,
-                COALESCE(TO_CHAR(Sales.SaleDate, 'DD-MM-YYYY'), '') AS SaleDate,
-                COALESCE(C.FirstName || ' ' || C.LastName, '') AS Buyer,
-                COALESCE(S.FirstName || ' ' || S.LastName, '') AS Salesperson
-            FROM CarSales Sales
-                JOIN Make ON Make.MakeCode = Sales.MakeCode 
-                JOIN Model ON Model.ModelCode = Sales.ModelCode
-                LEFT JOIN Customer C ON C.CustomerID = Sales.BuyerID
-                LEFT JOIN Salesperson S ON S.UserName = Sales.SalespersonID
-            WHERE (
-                LOWER(Make.MakeName) LIKE LOWER(%s)
-                OR LOWER(Model.ModelName) LIKE LOWER(%s)
-                OR LOWER(C.FirstName) LIKE LOWER(%s) 
-                OR LOWER(C.LastName) LIKE LOWER(%s)
-                OR LOWER(S.FirstName) LIKE LOWER(%s)
-                OR LOWER(S.LastName) LIKE LOWER(%s)
-                OR LOWER(C.FirstName || ' ' || C.LastName) LIKE LOWER(%s)
-                OR LOWER(S.FirstName || ' ' || S.LastName) LIKE LOWER(%s)
-            )
-            AND (
-                Sales.IsSold = FALSE
-                OR (Sales.IsSold = TRUE AND Sales.SaleDate >= CURRENT_DATE - INTERVAL '3 years')
-            )
-            ORDER BY Sales.IsSold ASC, 
-                    Sales.SaleDate ASC NULLS FIRST, 
-                    Make.MakeName ASC, 
-                    Model.ModelName ASC;
-        """
+        cursor.execute("SELECT * FROM find_car_sales(%s);", (searchString,))
+        res = cursor.fetchall()
+        if res == []:
+            return None
 
-        cursor.execute(query, [searchString] * 8)
-        res = cursor.fetchall() 
         attributes = ['carsale_id', 'make', 'model', 'builtYear', 'odometer', 'price', 'isSold', 'sale_date', 'buyer', 'salesperson']  
         res = [dict(zip(attributes, row)) for row in res]
         
