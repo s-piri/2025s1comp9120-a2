@@ -158,7 +158,7 @@ CREATE OR REPLACE FUNCTION updateCarSale(
 
 CREATE OR REPLACE FUNCTION check_future_saledate() RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.SaleDate <= CURRENT_DATE THEN
+    IF NEW.SaleDate <= CURRENT_DATE OR NEW.SaleDate is NULL THEN
         RETURN NEW;
     ELSE
         RAISE EXCEPTION 'Sale date cannot be in the future';
