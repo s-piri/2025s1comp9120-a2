@@ -220,6 +220,7 @@ def updateCarSale(carsaleid, customer, salesperson, saledate):
             return None
         curs = conn.cursor()
         curs.callproc("updateCarSale", [carsaleid, customer, salesperson, saledate])
+        conn.commit()
         output = curs.fetchone()
         result = output[0]
     except Exception as e:
