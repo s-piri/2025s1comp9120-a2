@@ -110,12 +110,17 @@ INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, B
 ('VW', 'golf', 2023, 53849, 43000.00, FALSE, NULL, NULL, NULL),
 ('MB', 'cclass', 2022, 89200, 62000.00, FALSE, NULL, NULL, NULL);
 
-CREATE FUNCTION updateCarSale(IN in_carsaleid SERIAL, IN in_customer VARCHAR, 
-                              IN in_salesperson VARCHAR, IN in_saledate TEXT, OUT result BOOLEAN) AS $$
+CREATE OR REPLACE FUNCTION updateCarSale(
+	IN in_carsaleid INT, 
+	IN in_customer VARCHAR, 
+	IN in_salesperson VARCHAR, 
+	IN in_saledate TEXT, 
+	OUT result BOOLEAN) AS $$
     DECLARE
         l_customer VARCHAR;
         l_salesperson VARCHAR;
         format_saledate DATE;
+		result BOOLEAN;
     BEGIN
         l_customer := LOWER(in_customer);
         l_salesperson := LOWER(in_salesperson);
