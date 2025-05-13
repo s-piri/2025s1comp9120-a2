@@ -180,7 +180,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_update_isSold
-AFTER INSERT OR UPDATE ON CarSales --This one use AFTER because the data in the row must be updated first
+BEFORE INSERT OR UPDATE ON CarSales --Actually have to use BEFORE, because AFTER can't modify NEW
 FOR EACH ROW
     EXECUTE FUNCTION update_isSold ();
 
