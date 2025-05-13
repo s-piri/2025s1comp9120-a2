@@ -118,7 +118,7 @@ CREATE OR REPLACE FUNCTION check_positive_odometer () RETURNS TRIGGER AS $$
     END;   
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION check_positive_prive () RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION check_positive_price () RETURNS TRIGGER AS $$
     BEGIN
         IF EXISTS (SELECT * FROM CarSales c WHERE c.price <= 0) THEN
             RAISE EXCEPTION 'Price value must be positive';
