@@ -111,7 +111,7 @@ INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, B
 
 CREATE OR REPLACE FUNCTION check_positive_odometer () RETURNS TRIGGER AS $$
     BEGIN
-        IF EXISTS (SELECT * FROM CarSales c WHERE c.odometer <= 0) THEN
+        IF NEW.Odometer <= 0 THEN
             RAISE EXCEPTION 'Odometer value must be positive';
         END IF;
         RETURN NEW;
@@ -120,7 +120,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION check_positive_price () RETURNS TRIGGER AS $$
     BEGIN
-        IF EXISTS (SELECT * FROM CarSales c WHERE c.price <= 0) THEN
+        IF NEW.Price <= 0 THEN
             RAISE EXCEPTION 'Price value must be positive';
         END IF;
         RETURN NEW;
