@@ -120,7 +120,6 @@ CREATE OR REPLACE FUNCTION updateCarSale(
         l_customer VARCHAR;
         l_salesperson VARCHAR;
         format_saledate DATE;
-		result BOOLEAN;
     BEGIN
         l_customer := LOWER(in_customer);
         l_salesperson := LOWER(in_salesperson);
