@@ -139,13 +139,13 @@ CREATE OR REPLACE FUNCTION updateCarSale(
 
         IF format_saledate > CURRENT_DATE AND format_saledate is not NULL THEN 
             result := FALSE;
-            RAISE EXCEPTION 'Invalid Saledate';
+        --    RAISE EXCEPTION 'Invalid Saledate';
         ELSIF NOT EXISTS (SELECT * FROM Customer c WHERE LOWER(c.CustomerID)=l_customer) AND l_customer is not NULL THEN 
             result := FALSE;
-            RAISE EXCEPTION 'Invalid CustomerID';
+        --    RAISE EXCEPTION 'Invalid CustomerID';
         ELSIF NOT EXISTS (SELECT * FROM Salesperson s WHERE LOWER(s.UserName)=l_salesperson) AND l_salesperson is not NULL THEN 
             result := FALSE;
-            RAISE EXCEPTION 'Invalid SalespersonID';
+        --    RAISE EXCEPTION 'Invalid SalespersonID';
         ELSIF NOT EXISTS (SELECT * FROM CarSales cs WHERE cs.CarSaleID=in_carsaleid) THEN result := FALSE;
         ELSE
             UPDATE CarSales -- Seems UPDATE can't be use with alias :/ 
