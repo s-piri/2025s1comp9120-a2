@@ -228,4 +228,4 @@ def updateCarSale(carsaleid, customer, salesperson, saledate):
     finally:
         curs.close()
         conn.close()
-    return result
+        return result
