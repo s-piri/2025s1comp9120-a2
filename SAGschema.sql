@@ -165,6 +165,25 @@ CREATE TRIGGER trg_check_future_saledate
 BEFORE INSERT OR UPDATE ON CarSales --Must check before insert to prevent invalid data!
 FOR EACH ROW
     EXECUTE FUNCTION check_future_saledate ();
+
+CREATE OR REPLACE FUNCTION update_isSold() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.BuyerID IS NOT NULL
+       AND NEW.SalespersonID IS NOT NULL
+       AND NEW.SaleDate <= CURRENT_DATE THEN
+        NEW.IsSold := TRUE;
+    ELSE
+        NEW.IsSold := FALSE;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_update_isSold
+AFTER INSERT OR UPDATE ON CarSales --This one use AFTER because the data in the row must be updated first
+FOR EACH ROW
+    EXECUTE FUNCTION update_isSold ();
+
 CREATE OR REPLACE FUNCTION check_positive_odometer () RETURNS TRIGGER AS $$
     BEGIN
         IF EXISTS (SELECT * FROM CarSales c WHERE c.odometer <= 0) THEN
