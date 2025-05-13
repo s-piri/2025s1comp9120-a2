@@ -132,10 +132,10 @@ CREATE OR REPLACE FUNCTION updateCarSale(
 -- END;
 
         IF l_customer = '' THEN
-            l_customer = NULL;
+            l_customer := NULL;
         END IF;
         IF l_salesperson = '' THEN
-            l_salesperson = NULL;
+            l_salesperson := NULL;
         END IF;
 
         IF format_saledate > CURRENT_DATE AND format_saledate is not NULL THEN 
