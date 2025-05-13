@@ -124,20 +124,28 @@ CREATE OR REPLACE FUNCTION updateCarSale(
     BEGIN
         l_customer := LOWER(in_customer);
         l_salesperson := LOWER(in_salesperson);
-        BEGIN
-            format_saledate := TO_DATE(in_saledate, 'DD-MM-YYYY');
-        EXCEPTION
-            WHEN OTHERS THEN
-                RAISE EXCEPTION 'Sale date not in Australian Date format (DD-MM-YYYY)';
-        END;
-        IF format_saledate > CURRENT_DATE THEN result := FALSE;
-        ELSIF NOT EXISTS (SELECT * FROM Customer WHERE CustomerID=l_customer) THEN result := FALSE;
-        ELSIF NOT EXISTS (SELECT * FROM Salesperson WHERE SalespersonID=l_salesperson) THEN result := FALSE;
-        ELSIF NOT EXISTS (SELECT * FROM CarSales WHERE CarSaleID=in_carsaleid) THEN result := FALSE;
+--BEGIN
+            format_saledate := TO_DATE(in_saledate, 'YYYY-MM-DD'); -- TO_DATE(in_saledate, 'DD-MM-YYYY');
+--EXCEPTION
+--    WHEN OTHERS THEN
+--        RAISE EXCEPTION 'Sale date not in Australian Date format (DD-MM-YYYY)';
+-- END;
+
+        IF l_customer = '' THEN
+            l_customer = NULL;
+        END IF;
+        IF l_salesperson = '' THEN
+            l_salesperson = NULL;
+        END IF;
+
+        IF format_saledate > CURRENT_DATE OR format_saledate is not NULL THEN result := FALSE;
+        ELSIF NOT EXISTS (SELECT * FROM Customer c WHERE LOWER(c.CustomerID)=l_customer) OR l_customer is not NULL THEN result := FALSE;
+        ELSIF NOT EXISTS (SELECT * FROM Salesperson s WHERE LOWER(s.UserName)=l_salesperson) OR l_salesperson is not NULL THEN result := FALSE;
+        ELSIF NOT EXISTS (SELECT * FROM CarSales cs WHERE cs.CarSaleID=in_carsaleid) THEN result := FALSE;
         ELSE
-            UPDATE CarSales c 
-            SET c.IsSold=TRUE, c.BuyerID=l_customer, c.SalespersonID=l_salesperson, c.SaleDate=format_saledate
-            WHERE c.CarSaleID=in_carsaleid;
+            UPDATE CarSales -- Seems UPDATE can't be use with alias :/ 
+            SET IsSold=TRUE, BuyerID=l_customer, SalespersonID=l_salesperson, SaleDate=format_saledate
+            WHERE CarSales.CarSaleID=in_carsaleid;
             result := TRUE;
         END IF;
     END; $$
