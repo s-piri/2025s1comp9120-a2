@@ -203,11 +203,11 @@ CREATE OR REPLACE FUNCTION check_positive_price () RETURNS TRIGGER AS $$
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_odometer_must_be_positive
-AFTER INSERT ON CarSales
+BEFORE INSERT OR UPDATE ON CarSales
 FOR EACH ROW
     EXECUTE FUNCTION check_positive_odometer();
 
 CREATE TRIGGER trg_price_must_be_positive
-AFTER INSERT ON CarSales
+BEFORE INSERT OR UPDATE ON CarSales
 FOR EACH ROW
     EXECUTE FUNCTION check_positive_price();
