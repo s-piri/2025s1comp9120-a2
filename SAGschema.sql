@@ -150,6 +150,21 @@ CREATE OR REPLACE FUNCTION updateCarSale(
         END IF;
     END; $$
  LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION check_future_saledate() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.SaleDate <= CURRENT_DATE THEN
+        RETURN NEW;
+    ELSE
+        RAISE EXCEPTION 'Sale date cannot be in the future';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_future_saledate
+BEFORE INSERT OR UPDATE ON CarSales --Must check before insert to prevent invalid data!
+FOR EACH ROW
+    EXECUTE FUNCTION check_future_saledate ();
 CREATE OR REPLACE FUNCTION check_positive_odometer () RETURNS TRIGGER AS $$
     BEGIN
         IF EXISTS (SELECT * FROM CarSales c WHERE c.odometer <= 0) THEN
