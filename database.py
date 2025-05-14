@@ -123,7 +123,7 @@ def findCarSales(searchString):
             return None
 
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM find_car_sales(%s);", (searchString,))
+        cursor.callproc("find_car_sales", [searchString])
         res = cursor.fetchall()
         if res == []:
             return None
