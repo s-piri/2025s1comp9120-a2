@@ -123,7 +123,6 @@ def findCarSales(searchString):
             return None
 
         cursor = conn.cursor()
-        searchString = f"%{searchString}%"
         cursor.callproc("find_car_sales", [searchString])
         res = cursor.fetchall()
         if res == []:

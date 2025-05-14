@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS Model;
 DROP TABLE IF EXISTS Make;
 DROP TABLE IF EXISTS Salesperson;
 DROP TABLE IF EXISTS Customer;
+DROP FUNCTION IF EXISTS find_car_sales(TEXT);
 
 CREATE TABLE Salesperson (
     UserName VARCHAR(10) PRIMARY KEY,
@@ -152,7 +153,11 @@ RETURNS TABLE (
     buyer TEXT,
     salesperson TEXT
 ) AS $$
+DECLARE
+    keyword TEXT;
 BEGIN
+    keyword := '%' || LOWER(search_text) || '%';
+    RAISE NOTICE 'Searching with keyword: %', keyword;
     RETURN QUERY
     SELECT
         Sales.CarSaleID,
@@ -171,14 +176,14 @@ BEGIN
         LEFT JOIN Customer C ON C.CustomerID = Sales.BuyerID
         LEFT JOIN Salesperson S ON S.UserName = Sales.SalespersonID
     WHERE (
-        LOWER(Make.MakeName) LIKE LOWER(search_text)
-        OR LOWER(Model.ModelName) LIKE LOWER(search_text)
-        OR LOWER(C.FirstName) LIKE LOWER(search_text) 
-        OR LOWER(C.LastName) LIKE LOWER(search_text)
-        OR LOWER(S.FirstName) LIKE LOWER(search_text)
-        OR LOWER(S.LastName) LIKE LOWER(search_text)
-        OR LOWER(C.FirstName || ' ' || C.LastName) LIKE LOWER(search_text)
-        OR LOWER(S.FirstName || ' ' || S.LastName) LIKE LOWER(search_text)
+        LOWER(Make.MakeName) LIKE keyword
+        OR LOWER(Model.ModelName) LIKE keyword
+        OR LOWER(C.FirstName) LIKE keyword
+        OR LOWER(C.LastName) LIKE keyword
+        OR LOWER(S.FirstName) LIKE keyword
+        OR LOWER(S.LastName) LIKE keyword
+        OR LOWER(C.FirstName || ' ' || C.LastName) LIKE keyword
+        OR LOWER(S.FirstName || ' ' || S.LastName) LIKE keyword
     )
     AND (
         Sales.IsSold = FALSE
