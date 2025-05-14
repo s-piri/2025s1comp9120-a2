@@ -1,4 +1,4 @@
-name: Local PostgreSQL Test
+name: Test with PostgreSQL 
 
 on: [push]
 
