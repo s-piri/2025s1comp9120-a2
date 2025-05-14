@@ -1,9 +1,8 @@
-SET datestyle = 'ISO, DMY';
-DROP TABLE IF EXISTS Make Cascade;
-DROP TABLE IF EXISTS Model Cascade;
-DROP TABLE IF EXISTS Salesperson Cascade;
-DROP TABLE IF EXISTS Customer Cascade;
-DROP TABLE IF EXISTS CarSales Cascade;
+DROP TABLE IF EXISTS CarSales;
+DROP TABLE IF EXISTS Model;
+DROP TABLE IF EXISTS Make;
+DROP TABLE IF EXISTS Salesperson;
+DROP TABLE IF EXISTS Customer;
 
 CREATE TABLE Salesperson (
     UserName VARCHAR(10) PRIMARY KEY,
@@ -84,6 +83,8 @@ CREATE TABLE CarSales (
   SaleDate Date
 );
 
+SET datestyle = 'ISO, DMY';
+
 INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate) VALUES
 ('MB', 'cclass', 2020, 64210, 72000.00, TRUE, 'c001', 'jdoe', '01/03/2024'),
 ('MB', 'eclass', 2019, 31210, 89000.00, FALSE, NULL, NULL, NULL),
@@ -109,3 +110,83 @@ INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, B
 ('MB', 'eclass', 2019, 99220, 105000.00, FALSE, NULL, NULL, NULL),
 ('VW', 'golf', 2023, 53849, 43000.00, FALSE, NULL, NULL, NULL),
 ('MB', 'cclass', 2022, 89200, 62000.00, FALSE, NULL, NULL, NULL);
+
+CREATE OR REPLACE FUNCTION check_positive_odometer () RETURNS TRIGGER AS $$
+    BEGIN
+        IF EXISTS (SELECT * FROM CarSales c WHERE c.odometer <= 0) THEN
+            RAISE EXCEPTION 'Odometer value must be positive';
+        END IF;
+        RETURN NEW;
+    END;   
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION check_positive_price () RETURNS TRIGGER AS $$
+    BEGIN
+        IF EXISTS (SELECT * FROM CarSales c WHERE c.price <= 0) THEN
+            RAISE EXCEPTION 'Price value must be positive';
+        END IF;
+        RETURN NEW;
+    END;   
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_odometer_must_be_positive
+AFTER INSERT ON CarSales
+FOR EACH ROW
+    EXECUTE FUNCTION check_positive_odometer();
+
+CREATE TRIGGER trg_price_must_be_positive
+AFTER INSERT ON CarSales
+FOR EACH ROW
+    EXECUTE FUNCTION check_positive_price();
+
+CREATE OR REPLACE FUNCTION find_car_sales(search_text TEXT)
+RETURNS TABLE (
+    carsale_id INT,
+    make VARCHAR,
+    model VARCHAR,
+    builtYear INT,
+    odometer INT,
+    price NUMERIC,
+    isSold BOOLEAN,
+    sale_date TEXT,
+    buyer TEXT,
+    salesperson TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        Sales.CarSaleID,
+        Make.MakeName,
+        Model.ModelName,
+        Sales.BuiltYear,
+        Sales.Odometer,
+        Sales.Price,
+        Sales.IsSold,
+        COALESCE(TO_CHAR(Sales.SaleDate, 'DD-MM-YYYY'), '') AS SaleDate,
+        COALESCE(C.FirstName || ' ' || C.LastName, '') AS Buyer,
+        COALESCE(S.FirstName || ' ' || S.LastName, '') AS Salesperson
+    FROM CarSales Sales
+        JOIN Make ON Make.MakeCode = Sales.MakeCode 
+        JOIN Model ON Model.ModelCode = Sales.ModelCode
+        LEFT JOIN Customer C ON C.CustomerID = Sales.BuyerID
+        LEFT JOIN Salesperson S ON S.UserName = Sales.SalespersonID
+    WHERE (
+        LOWER(Make.MakeName) LIKE LOWER(search_text)
+        OR LOWER(Model.ModelName) LIKE LOWER(search_text)
+        OR LOWER(C.FirstName) LIKE LOWER(search_text) 
+        OR LOWER(C.LastName) LIKE LOWER(search_text)
+        OR LOWER(S.FirstName) LIKE LOWER(search_text)
+        OR LOWER(S.LastName) LIKE LOWER(search_text)
+        OR LOWER(C.FirstName || ' ' || C.LastName) LIKE LOWER(search_text)
+        OR LOWER(S.FirstName || ' ' || S.LastName) LIKE LOWER(search_text)
+    )
+    AND (
+        Sales.IsSold = FALSE
+        OR (Sales.IsSold = TRUE AND Sales.SaleDate >= CURRENT_DATE - INTERVAL '3 years')
+    )
+    ORDER BY Sales.IsSold ASC, 
+             Sales.SaleDate ASC NULLS FIRST, 
+             Make.MakeName ASC, 
+             Model.ModelName ASC;
+END;
+$$ LANGUAGE plpgsql;
