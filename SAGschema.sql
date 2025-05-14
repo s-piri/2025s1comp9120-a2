@@ -1,8 +1,9 @@
-DROP TABLE IF EXISTS Make;
-DROP TABLE IF EXISTS Model;
-DROP TABLE IF EXISTS Salesperson;
-DROP TABLE IF EXISTS Customer;
-DROP TABLE IF EXISTS CarSales;
+SET datestyle = 'ISO, DMY';
+DROP TABLE IF EXISTS Make Cascade;
+DROP TABLE IF EXISTS Model Cascade;
+DROP TABLE IF EXISTS Salesperson Cascade;
+DROP TABLE IF EXISTS Customer Cascade;
+DROP TABLE IF EXISTS CarSales Cascade;
 
 CREATE TABLE Salesperson (
     UserName VARCHAR(10) PRIMARY KEY,
