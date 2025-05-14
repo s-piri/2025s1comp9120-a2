@@ -5,6 +5,18 @@ from database import findCarSales  # Replace with the actual module name
 
 # ---------- VALID CASES ----------
 
+# Testing the search function is connected to database and is producing accurate result. 
+# Is not dynamic, manually inserted expected data
+# If this fails, all other tests may not be accurate
+def test_search_function():
+    expected = [
+        {'carsale_id': 6, 'make': 'Volkswagen', 'model': 'Golf', 'builtYear': 2023, 'odometer': 22000, 'price': Decimal('33000.00'), 'isSold': True, 'sale_date': '06-11-2023', 'buyer': 'Laura Roberts', 'salesperson': 'John Doe'}, 
+        {'carsale_id': 1, 'make': 'Mercedes Benz', 'model': 'C Class', 'builtYear': 2020, 'odometer': 64210, 'price': Decimal('72000.00'), 'isSold': True, 'sale_date': '01-03-2024', 'buyer': 'David Wilson', 'salesperson': 'John Doe'}, 
+        {'carsale_id': 4, 'make': 'Toyota', 'model': 'Corolla', 'builtYear': 2022, 'odometer': 65000, 'price': Decimal('35000.00'), 'isSold': True, 'sale_date': '21-09-2024', 'buyer': 'Grace Thomas', 'salesperson': 'John Doe'}, 
+        {'carsale_id': 10, 'make': 'Mercedes Benz', 'model': 'A Class', 'builtYear': 2022, 'odometer': 47000, 'price': Decimal('57000.00'), 'isSold': True, 'sale_date': '01-03-2025', 'buyer': 'Frank Anderson', 'salesperson': 'John Doe'}
+    ]
+    assert findCarSales("John Doe") == expected
+    
 @pytest.mark.parametrize("query", [
     "mercedes benz", 
     "MERCEDES BENZ"
