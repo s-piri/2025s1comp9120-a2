@@ -1,0 +1,49 @@
+name: Test with PostgreSQL 
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testuser
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install PostgreSQL client
+      run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest psycopg2
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U testuser; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+
+    - name: Run schema
+      run: |
+        psql -h localhost -U testuser -d testuser -f SAGschema.sql
+      env:
+        PGPASSWORD: testpass
+
+    - name: Run tests
+      run: |
+        pytest

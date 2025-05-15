@@ -11,9 +11,9 @@ Connect to the database using the connection string
 def openConnection():
     # connection parameters - ENTER YOUR LOGIN AND PASSWORD HERE
 
-    myHost = ""
-    userid = ""
-    passwd = ""
+    myHost = "localhost"
+    userid = "testuser"
+    passwd = "testpass"
     
     # Create a connection to the database
     conn = None
