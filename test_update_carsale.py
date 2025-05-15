@@ -47,12 +47,12 @@ def find_matching_carsale(search_str, expected_id):
     }),
 
     # Test Case 8: Valid update -> parital -> isSold = False
-    (5, 'c899', '', None, True, 'defender', {
+    (5, 'C899', '', None, True, 'defender', {
         'buyer': 'eva taylor', 'salesperson': '', 'isSold': False, 'sale_date': ''
     }),
 
     # Test Case 9: Valid update -> parital -> isSold = False
-    (5, 'c899', 'brown', None, True, 'defender', {
+    (5, 'c899', 'bRown', None, True, 'defender', {
         'buyer': 'eva taylor', 'salesperson': 'bob brown', 'isSold': False, 'sale_date': ''
     }),
 
