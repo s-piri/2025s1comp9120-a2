@@ -112,9 +112,43 @@ INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, B
 ('VW', 'golf', 2023, 53849, 43000.00, FALSE, NULL, NULL, NULL),
 ('MB', 'cclass', 2022, 89200, 62000.00, FALSE, NULL, NULL, NULL);
 
+CREATE OR REPLACE FUNCTION addCarSale(
+	IN in_makename VARCHAR, 
+	IN in_modelname VARCHAR, 
+	IN in_builtyear INT, 
+	IN in_odometer INT,
+    IN in_price DECIMAL, 
+	OUT result BOOLEAN) AS $$
+    DECLARE
+        res_makecode VARCHAR;
+        res_modelcode VARCHAR;
+    BEGIN
+        SELECT ma.MakeCode, mo.ModelCode
+        INTO res_makecode, res_modelcode
+        FROM Make ma JOIN Model mo ON LOWER(ma.MakeCode) = LOWER(mo.MakeCode)
+        WHERE LOWER(ma.MakeName) = LOWER(in_makename)
+        AND LOWER(mo.ModelName) = LOWER(in_modelname);
+        -- JOIN make and model to check that the model belong in the make!
+
+        IF res_makecode IS NULL OR res_modelcode IS NULL THEN
+            result := FALSE;
+        ELSE
+			BEGIN
+	            INSERT INTO 
+	                CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate)
+	            VALUES 
+	                (res_makecode, res_modelcode, in_builtyear, in_odometer, in_price, False, NULL, NULL, NULL);
+	                result := TRUE;
+	            EXCEPTION WHEN OTHERS THEN  -- Catch cases where price <=0 or odometer <= 0 or builtyear < 1950 which lead to INSERT failure
+	                    result := FALSE;
+			END;
+        END IF;
+    END; $$
+ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION check_positive_odometer () RETURNS TRIGGER AS $$
     BEGIN
-        IF EXISTS (SELECT * FROM CarSales c WHERE c.odometer <= 0) THEN
+        IF NEW.Odometer <= 0 THEN
             RAISE EXCEPTION 'Odometer value must be positive';
         END IF;
         RETURN NEW;
@@ -123,7 +157,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION check_positive_price () RETURNS TRIGGER AS $$
     BEGIN
-        IF EXISTS (SELECT * FROM CarSales c WHERE c.price <= 0) THEN
+        IF NEW.Price <= 0 THEN
             RAISE EXCEPTION 'Price value must be positive';
         END IF;
         RETURN NEW;
@@ -131,12 +165,12 @@ CREATE OR REPLACE FUNCTION check_positive_price () RETURNS TRIGGER AS $$
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_odometer_must_be_positive
-AFTER INSERT ON CarSales
+BEFORE INSERT OR UPDATE ON CarSales
 FOR EACH ROW
     EXECUTE FUNCTION check_positive_odometer();
 
 CREATE TRIGGER trg_price_must_be_positive
-AFTER INSERT ON CarSales
+BEFORE INSERT OR UPDATE ON CarSales
 FOR EACH ROW
     EXECUTE FUNCTION check_positive_price();
 
