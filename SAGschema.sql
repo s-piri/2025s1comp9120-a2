@@ -1,9 +1,9 @@
 SET datestyle = 'ISO, DMY';
-DROP TABLE IF EXISTS Make CASCADE Cascade;
-DROP TABLE IF EXISTS Model CASCADE Cascade;
-DROP TABLE IF EXISTS Salesperson CASCADE Cascade;
-DROP TABLE IF EXISTS Customer CASCADE Cascade;
-DROP TABLE IF EXISTS CarSales CASCADE Cascade;
+DROP TABLE IF EXISTS Make CASCADE;
+DROP TABLE IF EXISTS Model CASCADE;
+DROP TABLE IF EXISTS Salesperson CASCADE;
+DROP TABLE IF EXISTS Customer CASCADE;
+DROP TABLE IF EXISTS CarSales CASCADE;
 DROP FUNCTION IF EXISTS find_car_sales(TEXT);
 
 CREATE TABLE Salesperson (
@@ -85,8 +85,6 @@ CREATE TABLE CarSales (
   SaleDate Date
 );
 
-SET datestyle = 'ISO, DMY';
-
 INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate) VALUES
 ('MB', 'cclass', 2020, 64210, 72000.00, TRUE, 'c001', 'jdoe', '01/03/2024'),
 ('MB', 'eclass', 2019, 31210, 89000.00, FALSE, NULL, NULL, NULL),
@@ -155,6 +153,10 @@ CREATE OR REPLACE FUNCTION updateCarSale(
             SET IsSold=TRUE, BuyerID=l_customer, SalespersonID=l_salesperson, SaleDate=format_saledate
             WHERE CarSales.CarSaleID=in_carsaleid;
             result := TRUE;
+        END IF;
+    END; $$
+ LANGUAGE plpgsql;
+ 
 CREATE OR REPLACE FUNCTION addCarSale(
 	IN in_makename VARCHAR, 
 	IN in_modelname VARCHAR, 
