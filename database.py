@@ -140,7 +140,7 @@ def addCarSale(make, model, builtYear, odometer, price):
         curs.callproc("addCarSale", [make, model, builtYear, odometer, price])
         conn.commit()
         output = curs.fetchone()
-        result = output[0]
+        return output[0]
     
     except Exception as e:
         print(f"Exception: {e}")
