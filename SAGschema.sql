@@ -124,13 +124,8 @@ CREATE OR REPLACE FUNCTION updateCarSale(
     BEGIN
         l_customer := LOWER(in_customer);
         l_salesperson := LOWER(in_salesperson);
---BEGIN
-            format_saledate := TO_DATE(in_saledate, 'YYYY-MM-DD'); -- TO_DATE(in_saledate, 'DD-MM-YYYY');
---EXCEPTION
---    WHEN OTHERS THEN
---        RAISE EXCEPTION 'Sale date not in Australian Date format (DD-MM-YYYY)';
--- END;
-
+        format_saledate := TO_DATE(in_saledate, 'YYYY-MM-DD');
+        
         IF l_customer = '' THEN
             l_customer := NULL;
         END IF;
@@ -140,13 +135,10 @@ CREATE OR REPLACE FUNCTION updateCarSale(
 
         IF format_saledate > CURRENT_DATE AND format_saledate is not NULL THEN 
             result := FALSE;
-        --    RAISE EXCEPTION 'Invalid Saledate';
         ELSIF NOT EXISTS (SELECT * FROM Customer c WHERE LOWER(c.CustomerID)=l_customer) AND l_customer is not NULL THEN 
             result := FALSE;
-        --    RAISE EXCEPTION 'Invalid CustomerID';
         ELSIF NOT EXISTS (SELECT * FROM Salesperson s WHERE LOWER(s.UserName)=l_salesperson) AND l_salesperson is not NULL THEN 
             result := FALSE;
-        --    RAISE EXCEPTION 'Invalid SalespersonID';
         ELSIF NOT EXISTS (SELECT * FROM CarSales cs WHERE cs.CarSaleID=in_carsaleid) THEN result := FALSE;
         ELSE
             UPDATE CarSales -- Seems UPDATE can't be use with alias :/ 
@@ -156,7 +148,7 @@ CREATE OR REPLACE FUNCTION updateCarSale(
         END IF;
     END; $$
  LANGUAGE plpgsql;
- 
+
 CREATE OR REPLACE FUNCTION addCarSale(
 	IN in_makename VARCHAR, 
 	IN in_modelname VARCHAR, 
