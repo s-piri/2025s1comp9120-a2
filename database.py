@@ -117,9 +117,29 @@ def getCarSalesSummary():
     :return: A list of car sales matching the search string.
 """
 def findCarSales(searchString):
-    print("github test")
-    print("Github test 2")
-    return
+    try:
+        conn = openConnection()
+        if not conn:
+            return None
+
+        cursor = conn.cursor()
+        cursor.callproc("find_car_sales", [searchString])
+        res = cursor.fetchall()
+        if res == []:
+            return None
+
+        attributes = ['carsale_id', 'make', 'model', 'builtYear', 'odometer', 'price', 'isSold', 'sale_date', 'buyer', 'salesperson']  
+        res = [dict(zip(attributes, row)) for row in res]
+        
+        return res
+
+    except Exception as e:
+        print(f"Exception: {e}")
+        return None
+    
+    finally:
+        cursor.close()
+        conn.close()
 
 """
     Adds a new car sale to the database.
