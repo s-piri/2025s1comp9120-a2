@@ -180,5 +180,20 @@ def addCarSale(make, model, builtYear, odometer, price):
     :param car_sale: The CarSale object containing updated details for the car sale.
     :return: A boolean indicating whether the update was successful or not.
 """
-def updateCarSale(carsaleid, customer, salesperosn, saledate):
-    return
+def updateCarSale(carsaleid, customer, salesperson, saledate):
+    try:
+        conn = openConnection()
+        if not conn:
+            return None
+        curs = conn.cursor()
+        curs.callproc("updateCarSale", [carsaleid, customer, salesperson, saledate])
+        conn.commit()
+        output = curs.fetchone()
+        result = output[0]
+    except Exception as e:
+        print(f"Exception: {e}")
+        result = False
+    finally:
+        curs.close()
+        conn.close()
+        return result
