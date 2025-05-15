@@ -66,7 +66,46 @@ def checkLogin(login, password):
     :return: A list of car sale summaries.
 """
 def getCarSalesSummary():
-    return
+    conn = openConnection()
+    if not conn:
+        return []
+
+    cur = conn.cursor()
+    query = """
+        SELECT
+            mk.MakeName AS make,
+            md.ModelName AS model,
+            COUNT(CASE WHEN cs.IsSold = FALSE THEN 1 END) AS available_units,
+            COUNT(CASE WHEN cs.IsSold = TRUE THEN 1 END) AS sold_units,
+            COALESCE(SUM(CASE WHEN cs.IsSold = TRUE THEN cs.Price END), 0) AS total_sales,
+            COALESCE(MAX(CASE WHEN cs.IsSold = TRUE THEN TO_CHAR(cs.SaleDate, 'DD-MM-YYYY') END), '') AS last_purchased_at
+        FROM
+            CarSales cs
+            JOIN Make mk ON cs.MakeCode = mk.MakeCode
+            JOIN Model md ON cs.ModelCode = md.ModelCode
+        GROUP BY
+            mk.MakeName, md.ModelName
+        ORDER BY
+            mk.MakeName ASC, md.ModelName ASC;
+    """
+    cur.execute(query)
+    results = cur.fetchall()
+    summary = []
+    for row in results:
+        total_sales = row[4]
+        last_purchased_at = row[5]
+        
+        summary.append({
+            "make": row[0],
+            "model": row[1],
+            "availableUnits": row[2],
+            "soldUnits": row[3],
+            "soldTotalPrices": total_sales,
+            "lastPurchaseAt": last_purchased_at
+        })
+    cur.close()
+    conn.close()
+    return summary
 
 """
     Finds car sales based on the provided search string.
@@ -78,9 +117,29 @@ def getCarSalesSummary():
     :return: A list of car sales matching the search string.
 """
 def findCarSales(searchString):
-    print("github test")
-    print("Github test 2")
-    return
+    try:
+        conn = openConnection()
+        if not conn:
+            return None
+
+        cursor = conn.cursor()
+        cursor.callproc("find_car_sales", [searchString])
+        res = cursor.fetchall()
+        if res == []:
+            return None
+
+        attributes = ['carsale_id', 'make', 'model', 'builtYear', 'odometer', 'price', 'isSold', 'sale_date', 'buyer', 'salesperson']  
+        res = [dict(zip(attributes, row)) for row in res]
+        
+        return res
+
+    except Exception as e:
+        print(f"Exception: {e}")
+        return None
+    
+    finally:
+        cursor.close()
+        conn.close()
 
 """
     Adds a new car sale to the database.
@@ -93,7 +152,23 @@ def findCarSales(searchString):
     :return: A boolean indicating if the operation was successful or not.
 """
 def addCarSale(make, model, builtYear, odometer, price):
-    return
+    try:
+        conn = openConnection()
+        if not conn:
+            return False
+        curs = conn.cursor() 
+        curs.callproc("addCarSale", [make, model, builtYear, odometer, price])
+        conn.commit()
+        output = curs.fetchone()
+        return output[0]
+    
+    except Exception as e:
+        print(f"Exception: {e}")
+        return False
+    
+    finally:
+        curs.close()
+        conn.close()
 
 """
     Updates an existing car sale in the database.
