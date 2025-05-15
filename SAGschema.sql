@@ -1,9 +1,10 @@
 SET datestyle = 'ISO, DMY';
-DROP TABLE IF EXISTS Make CASCADE;
-DROP TABLE IF EXISTS Model CASCADE;
-DROP TABLE IF EXISTS Salesperson CASCADE;
-DROP TABLE IF EXISTS Customer CASCADE;
-DROP TABLE IF EXISTS CarSales CASCADE;
+DROP TABLE IF EXISTS Make CASCADE Cascade;
+DROP TABLE IF EXISTS Model CASCADE Cascade;
+DROP TABLE IF EXISTS Salesperson CASCADE Cascade;
+DROP TABLE IF EXISTS Customer CASCADE Cascade;
+DROP TABLE IF EXISTS CarSales CASCADE Cascade;
+DROP FUNCTION IF EXISTS find_car_sales(TEXT);
 
 CREATE TABLE Salesperson (
     UserName VARCHAR(10) PRIMARY KEY,
@@ -84,6 +85,8 @@ CREATE TABLE CarSales (
   SaleDate Date
 );
 
+SET datestyle = 'ISO, DMY';
+
 INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate) VALUES
 ('MB', 'cclass', 2020, 64210, 72000.00, TRUE, 'c001', 'jdoe', '01/03/2024'),
 ('MB', 'eclass', 2019, 31210, 89000.00, FALSE, NULL, NULL, NULL),
@@ -152,6 +155,36 @@ CREATE OR REPLACE FUNCTION updateCarSale(
             SET IsSold=TRUE, BuyerID=l_customer, SalespersonID=l_salesperson, SaleDate=format_saledate
             WHERE CarSales.CarSaleID=in_carsaleid;
             result := TRUE;
+CREATE OR REPLACE FUNCTION addCarSale(
+	IN in_makename VARCHAR, 
+	IN in_modelname VARCHAR, 
+	IN in_builtyear INT, 
+	IN in_odometer INT,
+    IN in_price DECIMAL, 
+	OUT result BOOLEAN) AS $$
+    DECLARE
+        res_makecode VARCHAR;
+        res_modelcode VARCHAR;
+    BEGIN
+        SELECT ma.MakeCode, mo.ModelCode
+        INTO res_makecode, res_modelcode
+        FROM Make ma JOIN Model mo ON LOWER(ma.MakeCode) = LOWER(mo.MakeCode)
+        WHERE LOWER(ma.MakeName) = LOWER(in_makename)
+        AND LOWER(mo.ModelName) = LOWER(in_modelname);
+        -- JOIN make and model to check that the model belong in the make!
+
+        IF res_makecode IS NULL OR res_modelcode IS NULL THEN
+            result := FALSE;
+        ELSE
+			BEGIN
+	            INSERT INTO 
+	                CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate)
+	            VALUES 
+	                (res_makecode, res_modelcode, in_builtyear, in_odometer, in_price, False, NULL, NULL, NULL);
+	                result := TRUE;
+	            EXCEPTION WHEN OTHERS THEN  -- Catch cases where price <=0 or odometer <= 0 or builtyear < 1950 which lead to INSERT failure
+	                    result := FALSE;
+			END;
         END IF;
     END; $$
  LANGUAGE plpgsql;
@@ -191,7 +224,7 @@ FOR EACH ROW
 
 CREATE OR REPLACE FUNCTION check_positive_odometer () RETURNS TRIGGER AS $$
     BEGIN
-        IF EXISTS (SELECT * FROM CarSales c WHERE c.odometer <= 0) THEN
+        IF NEW.Odometer <= 0 THEN
             RAISE EXCEPTION 'Odometer value must be positive';
         END IF;
         RETURN NEW;
@@ -200,7 +233,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION check_positive_price () RETURNS TRIGGER AS $$
     BEGIN
-        IF EXISTS (SELECT * FROM CarSales c WHERE c.price <= 0) THEN
+        IF NEW.Price <= 0 THEN
             RAISE EXCEPTION 'Price value must be positive';
         END IF;
         RETURN NEW;
@@ -216,3 +249,59 @@ CREATE TRIGGER trg_price_must_be_positive
 BEFORE INSERT OR UPDATE ON CarSales
 FOR EACH ROW
     EXECUTE FUNCTION check_positive_price();
+
+CREATE OR REPLACE FUNCTION find_car_sales(search_text TEXT)
+RETURNS TABLE (
+    carsale_id INT,
+    make VARCHAR,
+    model VARCHAR,
+    builtYear INT,
+    odometer INT,
+    price NUMERIC,
+    isSold BOOLEAN,
+    sale_date TEXT,
+    buyer TEXT,
+    salesperson TEXT
+) AS $$
+DECLARE
+    keyword TEXT;
+BEGIN
+    keyword := '%' || LOWER(search_text) || '%';
+    RAISE NOTICE 'Searching with keyword: %', keyword;
+    RETURN QUERY
+    SELECT
+        Sales.CarSaleID,
+        Make.MakeName,
+        Model.ModelName,
+        Sales.BuiltYear,
+        Sales.Odometer,
+        Sales.Price,
+        Sales.IsSold,
+        COALESCE(TO_CHAR(Sales.SaleDate, 'DD-MM-YYYY'), '') AS SaleDate,
+        COALESCE(C.FirstName || ' ' || C.LastName, '') AS Buyer,
+        COALESCE(S.FirstName || ' ' || S.LastName, '') AS Salesperson
+    FROM CarSales Sales
+        JOIN Make ON Make.MakeCode = Sales.MakeCode 
+        JOIN Model ON Model.ModelCode = Sales.ModelCode
+        LEFT JOIN Customer C ON C.CustomerID = Sales.BuyerID
+        LEFT JOIN Salesperson S ON S.UserName = Sales.SalespersonID
+    WHERE (
+        LOWER(Make.MakeName) LIKE keyword
+        OR LOWER(Model.ModelName) LIKE keyword
+        OR LOWER(C.FirstName) LIKE keyword
+        OR LOWER(C.LastName) LIKE keyword
+        OR LOWER(S.FirstName) LIKE keyword
+        OR LOWER(S.LastName) LIKE keyword
+        OR LOWER(C.FirstName || ' ' || C.LastName) LIKE keyword
+        OR LOWER(S.FirstName || ' ' || S.LastName) LIKE keyword
+    )
+    AND (
+        Sales.IsSold = FALSE
+        OR (Sales.IsSold = TRUE AND Sales.SaleDate >= CURRENT_DATE - INTERVAL '3 years')
+    )
+    ORDER BY Sales.IsSold ASC, 
+             Sales.SaleDate ASC NULLS FIRST, 
+             Make.MakeName ASC, 
+             Model.ModelName ASC;
+END;
+$$ LANGUAGE plpgsql;

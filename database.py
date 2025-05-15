@@ -11,9 +11,9 @@ Connect to the database using the connection string
 def openConnection():
     # connection parameters - ENTER YOUR LOGIN AND PASSWORD HERE
 
-    myHost = ""
-    userid = ""
-    passwd = ""
+    myHost = "localhost"
+    userid = "testuser"
+    passwd = "testpass"
     
     # Create a connection to the database
     conn = None
@@ -117,55 +117,29 @@ def getCarSalesSummary():
     :return: A list of car sales matching the search string.
 """
 def findCarSales(searchString):
-    conn = openConnection()
-    if not conn:
+    try:
+        conn = openConnection()
+        if not conn:
+            return None
+
+        cursor = conn.cursor()
+        cursor.callproc("find_car_sales", [searchString])
+        res = cursor.fetchall()
+        if res == []:
+            return None
+
+        attributes = ['carsale_id', 'make', 'model', 'builtYear', 'odometer', 'price', 'isSold', 'sale_date', 'buyer', 'salesperson']  
+        res = [dict(zip(attributes, row)) for row in res]
+        
+        return res
+
+    except Exception as e:
+        print(f"Exception: {e}")
         return None
-
-    cursor = conn.cursor()
-    searchString = f"%{searchString}%"
-    query = """
-        SELECT Sales.CarSaleID,
-            Make.MakeName,
-            Model.ModelName,
-            Sales.BuiltYear,
-            Sales.Odometer,
-            Sales.Price,
-            Sales.IsSold,
-            COALESCE(TO_CHAR(Sales.SaleDate, 'DD-MM-YYYY'), '') AS SaleDate,
-            COALESCE(C.FirstName || ' ' || C.LastName, '') AS Buyer,
-            COALESCE(S.FirstName || ' ' || S.LastName, '') AS Salesperson
-        FROM CarSales Sales
-            JOIN Make ON Make.MakeCode = Sales.MakeCode 
-            JOIN Model ON Model.ModelCode = Sales.ModelCode
-            LEFT JOIN Customer C ON C.CustomerID = Sales.BuyerID
-            LEFT JOIN Salesperson S ON S.UserName = Sales.SalespersonID
-        WHERE (
-            LOWER(Make.MakeName) LIKE LOWER(%s)
-            OR LOWER(Model.ModelName) LIKE LOWER(%s)
-            OR LOWER(C.FirstName) LIKE LOWER(%s) 
-            OR LOWER(C.LastName) LIKE LOWER(%s)
-            OR LOWER(S.FirstName) LIKE LOWER(%s)
-            OR LOWER(S.LastName) LIKE LOWER(%s)
-            OR LOWER(C.FirstName || ' ' || C.LastName) LIKE LOWER(%s)
-            OR LOWER(S.FirstName || ' ' || S.LastName) LIKE LOWER(%s)
-        )
-        AND (
-            Sales.IsSold = FALSE
-            OR (Sales.IsSold = TRUE AND Sales.SaleDate >= CURRENT_DATE - INTERVAL '3 years')
-        )
-        ORDER BY Sales.IsSold ASC, 
-                Sales.SaleDate ASC NULLS FIRST, 
-                Make.MakeName ASC, 
-                Model.ModelName ASC;
-    """
-    cursor.execute(query, [searchString] * 8)
-    res = cursor.fetchall() 
-    attributes = ['carsale_id', 'make', 'model', 'builtYear', 'odometer', 'price', 'isSold', 'sale_date', 'buyer', 'salesperson']  
-    res = [dict(zip(attributes, row)) for row in res]
-    cursor.close()
-    conn.close()
-
-    return res
+    
+    finally:
+        cursor.close()
+        conn.close()
 
 """
     Adds a new car sale to the database.
@@ -178,22 +152,15 @@ def findCarSales(searchString):
     :return: A boolean indicating if the operation was successful or not.
 """
 def addCarSale(make, model, builtYear, odometer, price):
-    #TODO Check constraints; Right now odometer, price can be negative e.g. -100000 by making triggers/stored function
     try:
         conn = openConnection()
         if not conn:
             return False
-        query = """
-        INSERT INTO 
-            CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate)
-        VALUES 
-            (%s, %s, %s, %s, %s, False, NULL, NULL, NULL);
-        """
         curs = conn.cursor() 
-        curs.execute(query, (make, model, builtYear, odometer, price))
+        curs.callproc("addCarSale", [make, model, builtYear, odometer, price])
         conn.commit()
-
-        return True
+        output = curs.fetchone()
+        return output[0]
     
     except Exception as e:
         print(f"Exception: {e}")
