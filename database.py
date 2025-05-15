@@ -192,6 +192,7 @@ def updateCarSale(carsaleid, customer, salesperson, saledate):
         result = output[0]
     except Exception as e:
         print(f"Exception: {e}")
+        result = False
     finally:
         curs.close()
         conn.close()
