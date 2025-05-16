@@ -1,9 +1,9 @@
 SET datestyle = 'ISO, DMY';
-DROP TABLE IF EXISTS Make Cascade;
-DROP TABLE IF EXISTS Model Cascade;
-DROP TABLE IF EXISTS Salesperson Cascade;
-DROP TABLE IF EXISTS Customer Cascade;
-DROP TABLE IF EXISTS CarSales Cascade;
+DROP TABLE IF EXISTS Make CASCADE;
+DROP TABLE IF EXISTS Model CASCADE;
+DROP TABLE IF EXISTS Salesperson CASCADE;
+DROP TABLE IF EXISTS Customer CASCADE;
+DROP TABLE IF EXISTS CarSales CASCADE;
 DROP FUNCTION IF EXISTS find_car_sales(TEXT);
 
 CREATE TABLE Salesperson (
@@ -85,8 +85,6 @@ CREATE TABLE CarSales (
   SaleDate Date
 );
 
-SET datestyle = 'ISO, DMY';
-
 INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate) VALUES
 ('MB', 'cclass', 2020, 64210, 72000.00, TRUE, 'c001', 'jdoe', '01/03/2024'),
 ('MB', 'eclass', 2019, 31210, 89000.00, FALSE, NULL, NULL, NULL),
@@ -112,6 +110,44 @@ INSERT INTO CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, B
 ('MB', 'eclass', 2019, 99220, 105000.00, FALSE, NULL, NULL, NULL),
 ('VW', 'golf', 2023, 53849, 43000.00, FALSE, NULL, NULL, NULL),
 ('MB', 'cclass', 2022, 89200, 62000.00, FALSE, NULL, NULL, NULL);
+
+CREATE OR REPLACE FUNCTION updateCarSale(
+	IN in_carsaleid INT, 
+	IN in_customer VARCHAR, 
+	IN in_salesperson VARCHAR, 
+	IN in_saledate TEXT, 
+	OUT result BOOLEAN) AS $$
+    DECLARE
+        l_customer VARCHAR;
+        l_salesperson VARCHAR;
+        format_saledate DATE;
+    BEGIN
+        l_customer := LOWER(in_customer);
+        l_salesperson := LOWER(in_salesperson);
+        format_saledate := TO_DATE(in_saledate, 'YYYY-MM-DD');
+        
+        IF l_customer = '' THEN
+            l_customer := NULL;
+        END IF;
+        IF l_salesperson = '' THEN
+            l_salesperson := NULL;
+        END IF;
+
+        IF format_saledate > CURRENT_DATE AND format_saledate is not NULL THEN 
+            result := FALSE;
+        ELSIF NOT EXISTS (SELECT * FROM Customer c WHERE LOWER(c.CustomerID)=l_customer) AND l_customer is not NULL THEN 
+            result := FALSE;
+        ELSIF NOT EXISTS (SELECT * FROM Salesperson s WHERE LOWER(s.UserName)=l_salesperson) AND l_salesperson is not NULL THEN 
+            result := FALSE;
+        ELSIF NOT EXISTS (SELECT * FROM CarSales cs WHERE cs.CarSaleID=in_carsaleid) THEN result := FALSE;
+        ELSE
+            UPDATE CarSales -- Seems UPDATE can't be use with alias :/ 
+            SET IsSold=TRUE, BuyerID=l_customer, SalespersonID=l_salesperson, SaleDate=format_saledate
+            WHERE CarSales.CarSaleID=in_carsaleid;
+            result := TRUE;
+        END IF;
+    END; $$
+ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION addCarSale(
 	IN in_makename VARCHAR, 
@@ -146,6 +182,39 @@ CREATE OR REPLACE FUNCTION addCarSale(
         END IF;
     END; $$
  LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION check_future_saledate() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.SaleDate <= CURRENT_DATE OR NEW.SaleDate is NULL THEN
+        RETURN NEW;
+    ELSE
+        RAISE EXCEPTION 'Sale date cannot be in the future';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_future_saledate
+BEFORE INSERT OR UPDATE ON CarSales --Must check before insert to prevent invalid data!
+FOR EACH ROW
+    EXECUTE FUNCTION check_future_saledate ();
+
+CREATE OR REPLACE FUNCTION update_isSold() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.BuyerID IS NOT NULL
+       AND NEW.SalespersonID IS NOT NULL
+       AND NEW.SaleDate <= CURRENT_DATE THEN
+        NEW.IsSold := TRUE;
+    ELSE
+        NEW.IsSold := FALSE;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_update_isSold
+BEFORE INSERT OR UPDATE ON CarSales --Actually have to use BEFORE, because AFTER can't modify NEW
+FOR EACH ROW
+    EXECUTE FUNCTION update_isSold ();
 
 CREATE OR REPLACE FUNCTION check_positive_odometer () RETURNS TRIGGER AS $$
     BEGIN
