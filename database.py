@@ -80,9 +80,9 @@ def getCarSalesSummary():
             COALESCE(SUM(CASE WHEN cs.IsSold = TRUE THEN cs.Price END), 0) AS total_sales,
             COALESCE(MAX(CASE WHEN cs.IsSold = TRUE THEN TO_CHAR(cs.SaleDate, 'DD-MM-YYYY') END), '') AS last_purchased_at
         FROM
-            CarSales cs
-            JOIN Make mk ON cs.MakeCode = mk.MakeCode
-            JOIN Model md ON cs.ModelCode = md.ModelCode
+            Make mk
+            JOIN Model md ON md.MakeCode = mk.MakeCode
+            LEFT JOIN CarSales cs ON cs.MakeCode = mk.MakeCode AND cs.ModelCode = md.ModelCode
         GROUP BY
             mk.MakeName, md.ModelName
         ORDER BY
