@@ -11,9 +11,9 @@ Connect to the database using the connection string
 def openConnection():
     # connection parameters - ENTER YOUR LOGIN AND PASSWORD HERE
 
-    myHost = ""
-    userid = ""
-    passwd = ""
+    myHost = "localhost"
+    userid = "testuser"
+    passwd = "testpass"
     
     # Create a connection to the database
     conn = None
@@ -117,9 +117,29 @@ def getCarSalesSummary():
     :return: A list of car sales matching the search string.
 """
 def findCarSales(searchString):
-    print("github test")
-    print("Github test 2")
-    return
+    try:
+        conn = openConnection()
+        if not conn:
+            return None
+
+        cursor = conn.cursor()
+        cursor.callproc("find_car_sales", [searchString])
+        res = cursor.fetchall()
+        if res == []:
+            return None
+
+        attributes = ['carsale_id', 'make', 'model', 'builtYear', 'odometer', 'price', 'isSold', 'sale_date', 'buyer', 'salesperson']  
+        res = [dict(zip(attributes, row)) for row in res]
+        
+        return res
+
+    except Exception as e:
+        print(f"Exception: {e}")
+        return None
+    
+    finally:
+        cursor.close()
+        conn.close()
 
 """
     Adds a new car sale to the database.
@@ -132,22 +152,15 @@ def findCarSales(searchString):
     :return: A boolean indicating if the operation was successful or not.
 """
 def addCarSale(make, model, builtYear, odometer, price):
-    #TODO Check constraints; Right now odometer, price can be negative e.g. -100000 by making triggers/stored function
     try:
         conn = openConnection()
         if not conn:
             return False
-        query = """
-        INSERT INTO 
-            CarSales (MakeCode, ModelCode, BuiltYear, Odometer, Price, IsSold, BuyerID, SalespersonID, SaleDate)
-        VALUES 
-            (%s, %s, %s, %s, %s, False, NULL, NULL, NULL);
-        """
         curs = conn.cursor() 
-        curs.execute(query, (make, model, builtYear, odometer, price))
+        curs.callproc("addCarSale", [make, model, builtYear, odometer, price])
         conn.commit()
-
-        return True
+        output = curs.fetchone()
+        return output[0]
     
     except Exception as e:
         print(f"Exception: {e}")
@@ -167,5 +180,20 @@ def addCarSale(make, model, builtYear, odometer, price):
     :param car_sale: The CarSale object containing updated details for the car sale.
     :return: A boolean indicating whether the update was successful or not.
 """
-def updateCarSale(carsaleid, customer, salesperosn, saledate):
-    return
+def updateCarSale(carsaleid, customer, salesperson, saledate):
+    try:
+        conn = openConnection()
+        if not conn:
+            return None
+        curs = conn.cursor()
+        curs.callproc("updateCarSale", [carsaleid, customer, salesperson, saledate])
+        conn.commit()
+        output = curs.fetchone()
+        result = output[0]
+    except Exception as e:
+        print(f"Exception: {e}")
+        result = False
+    finally:
+        curs.close()
+        conn.close()
+        return result
