@@ -193,7 +193,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_check_future_saledate
+CREATE OR REPLACE TRIGGER trg_check_future_saledate
 BEFORE INSERT OR UPDATE ON CarSales --Must check before insert to prevent invalid data!
 FOR EACH ROW
     EXECUTE FUNCTION check_future_saledate ();
@@ -211,7 +211,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_update_isSold
+CREATE OR REPLACE TRIGGER trg_update_isSold
 BEFORE INSERT OR UPDATE ON CarSales --Actually have to use BEFORE, because AFTER can't modify NEW
 FOR EACH ROW
     EXECUTE FUNCTION update_isSold ();
@@ -234,12 +234,12 @@ CREATE OR REPLACE FUNCTION check_positive_price () RETURNS TRIGGER AS $$
     END;   
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_odometer_must_be_positive
+CREATE OR REPLACE TRIGGER trg_odometer_must_be_positive
 BEFORE INSERT OR UPDATE ON CarSales
 FOR EACH ROW
     EXECUTE FUNCTION check_positive_odometer();
 
-CREATE TRIGGER trg_price_must_be_positive
+CREATE OR REPLACE TRIGGER trg_price_must_be_positive
 BEFORE INSERT OR UPDATE ON CarSales
 FOR EACH ROW
     EXECUTE FUNCTION check_positive_price();
