@@ -78,7 +78,7 @@ def getCarSalesSummary():
             COUNT(CASE WHEN cs.IsSold = FALSE THEN 1 END) AS available_units,
             COUNT(CASE WHEN cs.IsSold = TRUE THEN 1 END) AS sold_units,
             COALESCE(SUM(CASE WHEN cs.IsSold = TRUE THEN cs.Price END), 0) AS total_sales,
-            COALESCE(MAX(CASE WHEN cs.IsSold = TRUE THEN TO_CHAR(cs.SaleDate, 'DD-MM-YYYY') END), '') AS last_purchased_at
+            COALESCE(TO_CHAR(MAX(CASE WHEN cs.IsSold = TRUE THEN cs.SaleDate END), 'DD-MM-YYYY'), '') AS last_purchased_at
         FROM
             Make mk
             JOIN Model md ON md.MakeCode = mk.MakeCode
